@@ -37,12 +37,16 @@ int main (int argc, char *argv[])
                 syserr("Error in fork\n");
 
             case 0:
-                printf("Jestem procesem potomnym %d i bede uzywal %d i %d wysylam wiadomosc jestem\n", i, i, i+1);
                 if (close (0) == -1)            syserr("child, close (%d)", i);
                 if (close (1) == -1)            syserr("child, close (%d)", i);
+//                fprintf(stderr, "Jestem procesem %d i bede uzywal %d jako stdin (koniec pisany %d)\n", i, pipe_dsc[i][0],
+//                        pipe_dsc[i][1]);
                 if (dup (pipe_dsc[i][0]) != 0)    syserr("child, dup (pipe_dsc [0])");
-                if (i != n-1)
+                if (i != n-1) {
+//                    fprintf(stderr, "Jestem procesem %d i bede uzywal %d jako stdout (koniec czytany %d)\n", i, pipe_dsc[i+1][1],
+//                        pipe_dsc[i+1][0]);
                     if (dup (pipe_dsc[i+1][1]) != 1)    syserr("child, dup (pipe_dsc [1])");
+                }
 
                 int j;
                 for (j = 0; j < n; ++j) {
@@ -55,7 +59,7 @@ int main (int argc, char *argv[])
                         }
                     }
                 }
-
+/*
                 char str[10];
                 fgets(str, 10, stdin);
                 int aux = atoi(str);
@@ -85,22 +89,29 @@ int main (int argc, char *argv[])
 
 
                 return 0;
-                /*
-                if (i == 0)
-                    execl("./daughter", "daughter", (char *) 0);
-                else if (i == 1)
-                    execl("./son", "son", (char *) 0);
-                else
-                    syserr("Za duzo procesow\n");
-                
-                syserr("Error in execl\n");*/
+                */
+
+                char n_str[10];
+                sprintf(n_str,"%d", n);
+                char i_str[10];
+                sprintf(i_str, "%d", i);
+                char read_dsc[10];
+                sprintf(read_dsc, "%d", pipe_dsc[n+i+1][0]);
+                char write_dsc[10];
+                sprintf(write_dsc, "%d", pipe_dsc[n+i][1]);
+                fprintf(stderr, "Startuje execl z argumentami : %s, %s, %s, %s, %s, %s\n", subprocess_cmd,
+                        subprocess, n_str, i_str, read_dsc, write_dsc);
+                execl(subprocess_cmd, subprocess, n_str, i_str, read_dsc, write_dsc, (char *) 0);
+                syserr("Error in execl\n");
 
         } /* switch (fork ()) */
     }
-
-    char str[10] = "5";
-    write(pipe_dsc[0][1], str, 10);
-
+/*
+    char str[10] = "1\n";
+    for (i = 0; i < n; ++i)
+        fprintf(stderr, "Jestem procesem macierzystym i wysylam '1' po raz %d\n", i);
+        write(pipe_dsc[0][1], str, 10);
+*/
     for (i = 0; i < n; ++i) {
         if (wait (0) == -1) 
             syserr("wait");
