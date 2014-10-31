@@ -5,7 +5,7 @@
 #include <sys/wait.h>
 #include "err.h"
 
-#define BUF_SIZE 80
+#define BUF_SIZE 1024
 
 
 int main (int argc, char *argv[]) {
@@ -16,8 +16,8 @@ int main (int argc, char *argv[]) {
 
     int n = atoi(argv[1]);
     int i = atoi(argv[2]);
-//    int read_dsc = atoi(argv[3]);
-//    int write_dsc = atoi(argv[4]);
+    int read_dsc = atoi(argv[3]);
+    int write_dsc = atoi(argv[4]);
 
     char buf[BUF_SIZE];
 
@@ -26,33 +26,54 @@ int main (int argc, char *argv[]) {
         value = 1;
 
     int j;
-    
+
     for (j = 0; j < n - i; ++j) {    
 
         if (i != 0) {
-            if (fgets(buf, BUF_SIZE, stdin) == NULL)
+            fprintf(stderr, "PROCES %d: Czekam na input\n", i);
+            if (fscanf(stdin, "%s", buf) < 0)
                 syserr("Process %d failed to read a value\n", i+1);
             int aux = atoi(buf);
             value += aux;
         }
 
         if (j != n - i - 1) {
+            fprintf(stderr, "PROCES %d: Daje output\n", i);
             printf("%d\n", value);
         }
     }
 
     fprintf(stderr, "PROCES %d: Moja ostateczna wartosc: %d\n", i, value);
-    /*
-    for (j = 0; j < n - i + 1; ++j) {
-        int len = sprintf(buf, "%d\n", value);
-        fprintf(stderr, "Jestem procesem %d i wysylam output na lewo po raz %d\n", i, j);
+
+    if (i == n-1) {
+        int len = sprintf(buf, "%dE", value);
+        fprintf(stderr, "Process %d PROPUJE wyslac %d bajty, slowo '%s' na %d\n", i, len, buf, write_dsc);
         write(write_dsc, buf, len);
-        if (j != n - i) {
-            fprintf(stderr, "Jestem procesem %d i oczekuje na input z prawej po raz %d\n", i, j);
-            int len = read(read_dsc, buf, sizeof(buf));
-            value = atoi(buf);
+        fprintf(stderr, "Process %d DAL RADE\n", i);
+
+        return 0;
+    } else {
+        fprintf(stderr, "Kto tu doszedl? %d\n", i);
+
+        int len = sprintf(buf, "%d ", value);
+        fprintf(stderr, "Process %d PROPUJE wyslac %d bajty, slowo '%s' na %d\n", i, len, buf, write_dsc);
+        write(write_dsc, buf, len);
+        fprintf(stderr, "Process %d DAL RADE\n", i);
+
+        while(1) {
+            fprintf(stderr, "Wsup\n");
+            int len = read(read_dsc, buf, BUF_SIZE);
+            if (len == -1)
+                syserr("Process %d failed to read a value from %d\n", i, i+1);
+            fprintf(stderr, "Wsup2\n");
+            int len2 = write(write_dsc, buf, len);
+            if (len2 == -1)
+                syserr("Process %d failed to write to %d\n", i, i-1);
+            if (buf[len - 1] == 'E') {
+                break;
+            }
         }
     }
-*/
+
     return 0;
 }
