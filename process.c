@@ -21,7 +21,7 @@ int main (int argc, char *argv[]) {
 
     char buf[BUF_SIZE];
 
-    int value = 0; 
+    unsigned long long value = 0; 
     if (i == 0)
         value = 1;
 
@@ -30,7 +30,6 @@ int main (int argc, char *argv[]) {
     for (j = 0; j < n - i; ++j) {    
 
         if (i != 0) {
-            fprintf(stderr, "PROCES %d: Czekam na input\n", i);
             if (fscanf(stdin, "%s", buf) < 0)
                 syserr("Process %d failed to read a value\n", i+1);
             int aux = atoi(buf);
@@ -38,34 +37,25 @@ int main (int argc, char *argv[]) {
         }
 
         if (j != n - i - 1) {
-            fprintf(stderr, "PROCES %d: Daje output\n", i);
-            printf("%d\n", value);
+            printf("%lld\n", value);
+            if (fflush(stdout) != 0)
+                syserr("Flushing failed");
         }
     }
 
-    fprintf(stderr, "PROCES %d: Moja ostateczna wartosc: %d\n", i, value);
-
     if (i == n-1) {
-        int len = sprintf(buf, "%dE", value);
-        fprintf(stderr, "Process %d PROPUJE wyslac %d bajty, slowo '%s' na %d\n", i, len, buf, write_dsc);
+        int len = sprintf(buf, "%lldE", value);
         write(write_dsc, buf, len);
-        fprintf(stderr, "Process %d DAL RADE\n", i);
 
         return 0;
     } else {
-        fprintf(stderr, "Kto tu doszedl? %d\n", i);
-
-        int len = sprintf(buf, "%d ", value);
-        fprintf(stderr, "Process %d PROPUJE wyslac %d bajty, slowo '%s' na %d\n", i, len, buf, write_dsc);
+        int len = sprintf(buf, "%lld ", value);
         write(write_dsc, buf, len);
-        fprintf(stderr, "Process %d DAL RADE\n", i);
 
         while(1) {
-            fprintf(stderr, "Wsup\n");
             int len = read(read_dsc, buf, BUF_SIZE);
             if (len == -1)
                 syserr("Process %d failed to read a value from %d\n", i, i+1);
-            fprintf(stderr, "Wsup2\n");
             int len2 = write(write_dsc, buf, len);
             if (len2 == -1)
                 syserr("Process %d failed to write to %d\n", i, i-1);

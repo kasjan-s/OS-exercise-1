@@ -30,7 +30,7 @@ int main (int argc, char *argv[])
 
     int i;
     for (i = 0; i < 2*n; ++i) {
-        if (pipe (pipe_dsc[i]) == -1) 
+        if (pipe(pipe_dsc[i]) == -1) 
             syserr("Failed to create a pipe\n");
     }
 
@@ -72,7 +72,6 @@ int main (int argc, char *argv[])
                 sprintf(read_dsc, "%d", i == n-1 ? -1 : pipe_dsc[n+i+1][0]);
                 char write_dsc[10];
                 sprintf(write_dsc, "%d", pipe_dsc[n+i][1]);
-//                fprintf(stderr,"Czytanie z %d jest z pisania z %d\n", pipe_dsc[n+i][0], pipe_dsc[n+i][1]);
 
                 // Uruchomienie procesu W(i)
                 execl(subprocess_cmd, subprocess, n_str, i_str, read_dsc, write_dsc, (char *) 0);
@@ -91,10 +90,7 @@ int main (int argc, char *argv[])
 
 
     char buf[BUF_SIZE];
-    int current = 0;
-    char answer[1024];
 
-    fprintf(stderr, "Pascal: Czekam na input z %d\n", pipe_dsc[n][1]);
 
     while(1) {
         int len = read(pipe_dsc[n][0], buf, 80);
