@@ -1,0 +1,26 @@
+/*
+ *  Autor: Kasjan Siwek
+ *  Indeks: 306827
+ *  Data: 02.11.2014
+ */
+
+W programie wystepuja dwie czesci zwiazane z komunikacja miedzy procesami.
+
+1) Obliczanie wartosci wspolczynnika trojkata Pascala
+Tutaj korzystam z podmienienia standardowych strumieni. Dzieki temu cala
+komunikacje mozna obsluzyc poprzez uzycie funkcji printf() oraz fscanf(), ktore
+sa bardzo przyjemne w uzyciu. fscanf() odczyta nam tylko nastepna znaleziona
+liczbe. Poniewaz sa onne oddzielone znakiem nowej linii '\n', to w trakcie
+dzialania programu sie nie pomieszaja. Musimy tylko zadbac, zeby wyslane dane
+faktycznie dotarly do nastepnego procesu, dlatego tez po kazdym poleceniu
+printf() uzywam polecanie fflush(stdout).
+
+2) Przekazanie wspolczynnikow z powrotem do procesu Pascal
+Tutaj poprzez uzycie lacz nienazwanych, uzywam funkcji systemowych read() oraz 
+write(). Nie mamy gwarancji ile danych odbierzemy na raz. Ale nie obchodzi nas
+to; proces W(i) musi tylko przekazac wszystko co odbierze w strone procesu
+Pascal. Musi byc tylko w stanie rozpoznac kiedy dostal ostatnia paczke danych,
+zeby sie zakonczyc. Wobec tego proces W(n) dodaje na koniec stringa ze swoim
+wspolczynnikiem znak 'E'. Nastepnie kazdy proces W(i) oraz Pascal sprawdzaja
+czy odebrane dane maja znak 'E' na koncu. Jesli tak, to przerywaja odbierania
+i koncza sie.

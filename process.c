@@ -1,3 +1,9 @@
+/*
+ *  Autor: Kasjan Siwek
+ *  Indeks: 306827
+ *  Data: 02.11.2014
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -5,7 +11,7 @@
 #include <sys/wait.h>
 #include "err.h"
 
-#define BUF_SIZE 1024
+#define BUF_SIZE 80
 
 
 int main (int argc, char *argv[]) {
@@ -25,17 +31,18 @@ int main (int argc, char *argv[]) {
     if (i == 0)
         value = 1;
 
+    // Wyliczenie wspolczynnika trojkata Pascala
     int j;
-
-    for (j = 0; j < n - i; ++j) {    
-
+    for (j = 0; j < n - i; ++j) {
+        // Odebranie poprzedniej wartosci od procesu W(i-1)
         if (i != 0) {
-            if (fscanf(stdin, "%s", buf) < 0)
+            long long int aux;
+            if (fscanf(stdin, "%lld", &aux) < 0)
                 syserr("Process %d failed to read a value\n", i+1);
-            int aux = atoi(buf);
             value += aux;
         }
 
+        // Wyslanie wyliczonej wartosci do procesu W(i+1)
         if (j != n - i - 1) {
             printf("%lld\n", value);
             if (fflush(stdout) != 0)
@@ -43,6 +50,7 @@ int main (int argc, char *argv[]) {
         }
     }
 
+    // Przeslanie wyliczonej wartosci do procesu Pascal
     if (i == n-1) {
         int len = sprintf(buf, "%lldE", value);
         write(write_dsc, buf, len);
@@ -52,6 +60,7 @@ int main (int argc, char *argv[]) {
         int len = sprintf(buf, "%lld ", value);
         write(write_dsc, buf, len);
 
+        // Procesy musza tez przekazac odebrane wartosci dalej
         while(1) {
             int len = read(read_dsc, buf, BUF_SIZE);
             if (len == -1)
@@ -59,6 +68,7 @@ int main (int argc, char *argv[]) {
             int len2 = write(write_dsc, buf, len);
             if (len2 == -1)
                 syserr("Process %d failed to write to %d\n", i, i-1);
+            // Koniec danych
             if (buf[len - 1] == 'E') {
                 break;
             }

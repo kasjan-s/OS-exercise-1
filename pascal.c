@@ -1,3 +1,9 @@
+/*
+ *  Autor: Kasjan Siwek
+ *  Indeks: 306827
+ *  Data: 02.11.2014
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -8,6 +14,7 @@
 
 #define BUF_SIZE 80
 
+// Nazwa programu z procesem W(i)
 char subprocess[] = "process";
 char subprocess_cmd[] = "./process";
 
@@ -42,15 +49,17 @@ int main (int argc, char *argv[])
 
             // Proces potomny
             case 0:
-                // Podmiana stdin i stdout
+                // Podmiana stdin
                 if (close (0) == -1)            syserr("Process %i, failed to close(0)", i);
                 if (dup (pipe_dsc[i][0]) != 0)    syserr("child, dup (pipe_dsc [0])");
-                // W(n) nie ma W(n+1) do ktorego moglby napisac
-                if (i != n-1) {
-                    if (close (1) == -1)            syserr("Process %i, failed to close(1)", i);
+
+                if (close (1) == -1)            syserr("Process %i, failed to close(1)", i);
+                if (i != n-1) {  
+                    // Podmiana stdout; W(n) nie mialby do kogo pisac
                     if (dup (pipe_dsc[i+1][1]) != 1)    syserr("child, dup (pipe_dsc [1])");
                 }
 
+                // Zamkniecie nieuzywanych lacz
                 int j;
                 for (j = 0; j < n; ++j) {
                     if (j != i) {
@@ -69,6 +78,7 @@ int main (int argc, char *argv[])
                 char i_str[10];
                 sprintf(i_str, "%d", i);
                 char read_dsc[10];
+                // W(n) nie ma lacza do pisania
                 sprintf(read_dsc, "%d", i == n-1 ? -1 : pipe_dsc[n+i+1][0]);
                 char write_dsc[10];
                 sprintf(write_dsc, "%d", pipe_dsc[n+i][1]);
@@ -80,6 +90,7 @@ int main (int argc, char *argv[])
         }
     }
 
+    // Zamkniecie nieuzywanych lacz
     for (i = 0; i < n; ++i) {
         if (close (pipe_dsc[i][0]) == -1) syserr("Process Pascal, close (pipe_dsc[%d][0])", i);
         if (close (pipe_dsc[i][1]) == -1) syserr("Process Pascal, close (pipe_dsc[%d][0])", i);
@@ -89,21 +100,23 @@ int main (int argc, char *argv[])
     }
 
 
+    // Odbieranie danych od procesow W(i) - wspolczynniki trojkata Pascala
     char buf[BUF_SIZE];
-
 
     while(1) {
         int len = read(pipe_dsc[n][0], buf, 80);
         if (len == -1)
             syserr("Parent failed to read a value\n");
-        buf[len] = '\0';
 
+        // Jesli to ostatni wspolczynnik, to wypisz i przerwij petle
         if (buf[len - 1] == 'E') {
             buf[len - 1] = '\0';
             printf("%s\n", buf);
             break;
+        } else {
+            buf[len] = '\0';
+            printf("%s", buf);
         }
-        printf("%s", buf);
     }
 
 
