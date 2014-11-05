@@ -32,15 +32,15 @@ int main (int argc, char *argv[])
         exit(0);
     }
 
-    // 2n lacz, ze wzgledu na komunikacje dwukierunkowa
-    int pipe_dsc[2*n][2];
+    int pipe_d[4][2];
 
     int i;
-    for (i = 0; i < 2*n; ++i) {
-        if (pipe(pipe_dsc[i]) == -1) 
+    for (i = 0; i < 4; ++i) {
+        if (pipe(pipe_d[i]) == -1) 
             syserr("Failed to create a pipe\n");
     }
 
+    int src = pipe_d[2][0];
 
     for (i = 0; i < n; ++i) {
         switch (fork ()) {
@@ -50,27 +50,21 @@ int main (int argc, char *argv[])
             // Proces potomny
             case 0:
                 // Podmiana stdin
-                if (close (0) == -1)            syserr("Process %i, failed to close(0)", i);
-                if (dup (pipe_dsc[i][0]) != 0)    syserr("child, dup (pipe_dsc [0])");
+                if (close(0) == -1) syserr("Process %i, failed to close(0)", i);
+                if (dup(pipe_d[0][0]) != 0) syserr("Process %i, failed to dup", i);
 
-                if (close (1) == -1)            syserr("Process %i, failed to close(1)", i);
-                if (i != n-1) {  
-                    // Podmiana stdout; W(n) nie mialby do kogo pisac
-                    if (dup (pipe_dsc[i+1][1]) != 1)    syserr("child, dup (pipe_dsc [1])");
+                // Podmiana stdout
+                if (close(1) == -1) syserr("Process %i, failed to close(1)", i);
+                if (i != n-1) {
+                    if (dup(pipe_d[1][1]) != 1) syserr("Process %i, failed to dup", i);
                 }
-
+                
                 // Zamkniecie nieuzywanych lacz
-                int j;
-                for (j = 0; j < n; ++j) {
-                    if (j != i) {
-                        if (close (pipe_dsc[j][0]) == -1) syserr("child %d, close (pipe_dsc[%d][0])", i, j);
-                        if (close (pipe_dsc[n+j][1]) == -1) syserr("child %d, close (pipe_dsc[%d][1])", i, n+j);
-                    }
-                    if (j != i + 1) {
-                        if (close (pipe_dsc[j][1]) == -1) syserr("child %d, close (pipe_dsc[%d][1])", i, j);
-                        if (close (pipe_dsc[n+j][0]) == -1) syserr("child %d, close (pipe_dsc[%d][0])", i, n+j);
-                    }
-                }
+                if (close(pipe_d[0][1]) != 0) syserr("Process %i, failed to close(0, 1)", i);
+                if (close(pipe_d[1][0]) != 0) syserr("Process %i, failed to close(1, 0)", i);
+
+                if (close(pipe_d[2][0]) != 0) syserr("Process %i, failed to close(2, 0)", i);
+                if (close(pipe_d[3][1]) != 0) syserr("Process %i, failed to close(3, 1)", i);
 
                 // Konwersja argumentow do stringow
                 char n_str[10];
@@ -79,32 +73,36 @@ int main (int argc, char *argv[])
                 sprintf(i_str, "%d", i);
                 char read_dsc[10];
                 // W(n) nie ma lacza do pisania
-                sprintf(read_dsc, "%d", i == n-1 ? -1 : pipe_dsc[n+i+1][0]);
+                sprintf(read_dsc, "%d", pipe_d[3][0]);
                 char write_dsc[10];
-                sprintf(write_dsc, "%d", pipe_dsc[n+i][1]);
+                sprintf(write_dsc, "%d", pipe_d[2][1]);
 
                 // Uruchomienie procesu W(i)
                 execl(subprocess_cmd, subprocess, n_str, i_str, read_dsc, write_dsc, (char *) 0);
                 syserr("Error in execl\n");
 
+            default:
+                if (close(pipe_d[0][0]) != 0) syserr("Pascal failed to close(0, 0) for %d", i);
+                if (close(pipe_d[0][1]) != 0) syserr("Pascal failed to close(0, 1) for %d", i);
+                if (i != 0)
+                    if (close(pipe_d[2][0]) != 0) syserr("Pascal failed to close(2, 0) for %d", i);
+                if (close(pipe_d[2][1]) != 0) syserr("Pascal failed to close(2, 1) for %d", i);
+
+                pipe_d[0][0] = pipe_d[1][0];
+                pipe_d[0][1] = pipe_d[1][1];
+                pipe_d[2][0] = pipe_d[3][0];
+                pipe_d[2][1] = pipe_d[3][1];
+
+                if (pipe(pipe_d[1]) == -1) syserr("Pascal failed to pipe");
+                if (pipe(pipe_d[3]) == -1) syserr("Pascal failed to pipe");
         }
     }
-
-    // Zamkniecie nieuzywanych lacz
-    for (i = 0; i < n; ++i) {
-        if (close (pipe_dsc[i][0]) == -1) syserr("Process Pascal, close (pipe_dsc[%d][0])", i);
-        if (close (pipe_dsc[i][1]) == -1) syserr("Process Pascal, close (pipe_dsc[%d][0])", i);
-        if (i != 0)
-            if (close (pipe_dsc[n+i][0]) == -1) syserr("Process Pascal, close (pipe_dsc[n+%d][0])", i);
-        if (close (pipe_dsc[n+i][1]) == -1) syserr("Process Pascal, close (pipe_dsc[n+%d][0])", i);
-    }
-
 
     // Odbieranie danych od procesow W(i) - wspolczynniki trojkata Pascala
     char buf[BUF_SIZE];
 
     while(1) {
-        int len = read(pipe_dsc[n][0], buf, 80);
+        int len = read(src, buf, 80);
         if (len == -1)
             syserr("Parent failed to read a value\n");
 
@@ -118,7 +116,6 @@ int main (int argc, char *argv[])
             printf("%s", buf);
         }
     }
-
 
     // Czekamy na zakonczenie procesow potomnych
     for (i = 0; i < n; ++i) {

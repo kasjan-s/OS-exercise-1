@@ -49,7 +49,7 @@ int main (int argc, char *argv[]) {
                 syserr("Flushing failed");
         }
     }
-
+    
     // Przeslanie wyliczonej wartosci do procesu Pascal
     if (i == n-1) {
         int len = sprintf(buf, "%lldE", value);
