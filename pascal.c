@@ -40,6 +40,7 @@ int main (int argc, char *argv[])
             syserr("Failed to create a pipe\n");
     }
 
+    // Lacze z ktorego odbierac bedzie Pascal od procesu W(1)
     int src = pipe_d[2][0];
 
     for (i = 0; i < n; ++i) {
@@ -82,17 +83,20 @@ int main (int argc, char *argv[])
                 syserr("Error in execl\n");
 
             default:
+                // Zamkniecie nieuzywanych lacz
                 if (close(pipe_d[0][0]) != 0) syserr("Pascal failed to close(0, 0) for %d", i);
                 if (close(pipe_d[0][1]) != 0) syserr("Pascal failed to close(0, 1) for %d", i);
                 if (i != 0)
                     if (close(pipe_d[2][0]) != 0) syserr("Pascal failed to close(2, 0) for %d", i);
                 if (close(pipe_d[2][1]) != 0) syserr("Pascal failed to close(2, 1) for %d", i);
 
+                // Przejscie krok dalej - podmiana zapisanych lacz
                 pipe_d[0][0] = pipe_d[1][0];
                 pipe_d[0][1] = pipe_d[1][1];
                 pipe_d[2][0] = pipe_d[3][0];
                 pipe_d[2][1] = pipe_d[3][1];
 
+                // Otworzenie nowych lacz dla komunikacji z nastepnym subprocesem
                 if (pipe(pipe_d[1]) == -1) syserr("Pascal failed to pipe");
                 if (pipe(pipe_d[3]) == -1) syserr("Pascal failed to pipe");
         }
